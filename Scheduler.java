@@ -11,16 +11,22 @@ import java.util.Collections;
 import java.util.Comparator;
 
 @SuppressWarnings("unchecked")
-public class Scheduler implements Runnable {
+public class Scheduler {
+	LinkedList<Process> rqueue;
 
-	public static void arriving(LinkedList<Process> rqueue,
-		LinkedList<Process> nrqueue, double CPUTime, double Atime){
+	public Scheduler (LinkedList<Process> rqueue){
+		this.rqueue = rqueue;
+	}
+
+	public Scheduler(){rqueue = new LinkedList<Process>();}
+
+	public void arriving(LinkedList<Process> nrqueue, double CPUTime, double Atime){
 
 		int i = 0;
 		if(CPUTime == Atime){
 			while(nrqueue.size() > 0){
 				if(nrqueue.get(i).getAtime() != Atime+1){
-				rqueue.add(nrqueue.remove());
+				this.rqueue.add(nrqueue.remove());
 
 				}else{
 					break;
@@ -29,97 +35,63 @@ public class Scheduler implements Runnable {
 		}
 	}
 
-	public static void executing(Process executing){
-        double j = executing.getBtime();
-		double CPUTime = 0.0, runtime = 0.0, starttime = 0.0, endtime = 0.0, time_remaining = 0.0;
-		int i = 1;
-
-
+	public Process remove(int i){
+		return this.rqueue.remove(i);
 	}
+	public Process get(int i){ return rqueue.get(i);}
 
-	@Override
-	public void run () {
-		//todo
-	}
-
-	public void sortQueue()
-
-
+	public int size(){return rqueue.size();}
 
 	public static void main (String[] args){
-		int Wtime,Tat,Twt;
+		int Wtime,Tat,Twt,Trt = 0;
 		double CPUTime;
-		int NumOfProcesses = 0, i = 0;
-        LinkedList<Process> rqueue = new LinkedList<Process> ();
+		int i = 0;
+		Scheduler rqueue = new Scheduler();
 		LinkedList<Process> nrqueue = new LinkedList<Process> ();
-        getProcesses.getProcesses(rqueue,nrqueue);
-		System.out.println(NumOfProcesses);
+        getProcesses.getProcesses(rqueue.rqueue,nrqueue);
 
 			/*
 			 * Time to start executing some processes.
 			 */
+		for (i=0;i<rqueue.size();i++)
+			Trt += rqueue.get(i).getBtime();
+
 			CPUTime = 0.0;
-            Dispatcher dispatch = new Dispatcher();
-			Process executing = dispatch.dispatch(rqueue);
-		   /* double runtime = 0.0, starttime = CPUTime, endtime = 0.0, time_remaining = 0.0;
+			Process executing = rqueue.remove(0);
+		   double runtime = 0.0, starttime = CPUTime, endtime = 0.0, time_remaining = 0.0;
 			i = 1;
-		    Process executing = rqueue.remove(0);
 			double j = executing.getBtime();
-			boolean notdone = true;
-		    while (notdone){
-				if (runtime != j){
-					if(CPUTime == nrqueue.get(0).getAtime()){
-						arriving(rqueue, nrqueue, CPUTime, i);
-						Collections.sort(rqueue, new Process.ProcessComparator());
-						if(rqueue.size() > 0){
-						if(rqueue.get(0).getBtime() < time_remaining){
-								endtime = CPUTime;
-								System.out.println("Process " + executing.getPID() + " executed from " + starttime + " to " + endtime + ".");
-								notdone = true;
-								Process temp = executing;
-								executing = rqueue.remove(0);
-								rqueue.add(temp);
-								j = executing.getBtime();
-								starttime = CPUTime;
-                                runtime = 0.0;
-								Collections.sort(rqueue, new Process.ProcessComparator());
-						}
-						}
-						i++;
-						System.out.println("Value of i: " + i);
+			while (CPUTime < Trt){
+				if(CPUTime == i && nrqueue.size() > 0){
+					rqueue.arriving(nrqueue,CPUTime,i);
+					Collections.sort(rqueue.rqueue, new Process.ProcessComparator());
+					i++;
+				}else{
+					if(runtime != j){
+						CPUTime = round.round(CPUTime+.1);
+						runtime = round.round(runtime+.1);
 					}
-					if(runtime == 0){
-					System.out.println("Process " + executing.getPID() + " is executing.");
-					}
-					CPUTime = round.round(CPUTime+.1);
-					runtime = round.round(runtime+.1);
-					time_remaining = executing.getBtime() - runtime;
-					}else{
-						if(rqueue.size() > 0){
-							Collections.sort(rqueue, new Process.ProcessComparator());
-							endtime = CPUTime;
-							System.out.println("Process " + executing.getPID() + " executed from " + starttime + " to " + endtime + ".");
-                            notdone = true;
-							executing = rqueue.remove(0);
-							j = executing.getBtime();
-							starttime = CPUTime;
-							runtime = 0.0;
-						}else{
+					if(runtime ==j && rqueue.size() > 0){
+						System.out.println("This " + runtime);
 						endtime = CPUTime;
-						System.out.println("Process " + executing.getPID() + " executed from " + starttime + " to " + endtime + ".");
-					notdone = false;
-						}
+						System.out.println(executing.getPID() + "executed from " + starttime + " to " + endtime +".");
+						executing = rqueue.remove(0);
+						j = executing.getBtime();
+						starttime = CPUTime;
+						runtime = 0.0;
+						System.out.println(executing.getPID() + " is executing.");
+						CPUTime = round.round(CPUTime+.1);
 					}
-				}*/
-			dispatch = new Dispatcher(rqueue, executing);
-			Thread t = new Thread (dispatch);
-			t.start();
-			for (i=0; i<5; i++)
-				System.out.println("Process Done.");
+
+				}
 			}
+			for(i=0;i<rqueue.size();i++)
+				System.out.println(rqueue.get(i).getPID());
+			System.out.println("Done.");
+	}
 }
 
-class Dispatcher implements Runnable {
+/*class Dispatcher extends Thread {
 	LinkedList<Process> rqueue = new LinkedList<Process>();
 	Process executing = new Process();
 
@@ -146,7 +118,7 @@ class Dispatcher implements Runnable {
 	public void run () {
 		preempt(rqueue, executing);
 	}
-}
+}*/
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 class Process implements Comparable {
@@ -195,13 +167,15 @@ class Process implements Comparable {
 	}
 }
 class round {
-public static double round(double val){
-	DecimalFormat  df = new DecimalFormat ("#.#");
-	val = Double.valueOf(df.format(val));
-	return val;
-}
+	public static double round(double val){
+		DecimalFormat  df = new DecimalFormat ("#.#");
+		val = Double.valueOf(df.format(val));
+		return val;
+	}
 }
 
+//user enters number of Process(numOfProcesses, Arrival Time(Atime), and Burst
+//time(Btime) on keyboard.
 class getProcesses {
 	public static void getProcesses(LinkedList<Process> rqueue, LinkedList<Process> nrqueue){
 		int Atime, Btime ,numOfProcesses = 0, i = 0;
@@ -223,5 +197,6 @@ class getProcesses {
 			}
 			i++;
 		}
+	}
 }
-}
+
